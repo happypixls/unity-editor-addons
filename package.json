@@ -1,0 +1,13 @@
+{
+  "name": "com.happypixels.editoraddons",
+  "displayName": "Unity editor addons",
+  "version": "0.0.5",
+  "unity": "2021.3",
+  "author": "Mohamed ElZayyat",
+  "description": "Editor addon package, contains namespace generator, DLL compilation handling for mobile devices and misc editor extensions ",
+  "dependencies": { },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/happypixls/unity-editor-addons"
+  }
+}

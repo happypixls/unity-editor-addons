@@ -4,7 +4,7 @@ using UnityEditor;
 
 public class FilesProcessor : AssetPostprocessor
 {
-    void OnPreprocessAsset()
+    private void OnPreprocessAsset()
     {
         if (assetImporter.importSettingsMissing)
         {

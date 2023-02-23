@@ -13,53 +13,57 @@ public enum FileType
     CSharpScript = 0,
     InterfaceFile = 1,
     EnumFile = 2,
-    Asemdef = 3,
+    Asmdef = 3,
 }
 
 public class NamespaceResolver : AssetModificationProcessor
 {
     public static FileType CurrentlyCreatedFile { get; set; } = FileType.None;
-    private static Dictionary<FileType, Action<string, string>> FileTemplatesGenerators { get; } =
-        new()
+    private static Dictionary<FileType, Action<string, string>> FileTemplatesGenerators { get; } = 
+        new() 
         {
             { FileType.CSharpScript, GenerateCSharpMonobehaviourScript },
             { FileType.InterfaceFile, GenerateCSharpInterface },
             { FileType.EnumFile, GenerateCSharpEnum },
-            { FileType.Asemdef, GenerateAssemblyDefinition },
+            { FileType.Asmdef, GenerateAssemblyDefinition },
         };
     
     private static string GenerateNamespace(string metaFilePath)
     {
-        var SegmentedPath = $"{Path.GetDirectoryName(metaFilePath)}".Split(new[] { '\\' }, StringSplitOptions.None);
+        var segmentedPath = $"{Path.GetDirectoryName(metaFilePath)}".Split(new[] { '\\' }, StringSplitOptions.None);
 
-        var GeneratedNamespace = "";
-        var FinalNamespace = "";
+        var generatedNamespace = "";
+        var finalNamespace = "";
 
         // In case of placing the class at the root of a folder such as (Editor, Scripts, etc...)  
-        if (SegmentedPath.Length <= 2)
-            FinalNamespace = UnityEditor.EditorSettings.projectGenerationRootNamespace;
+        if (segmentedPath.Length <= 2)
+            finalNamespace = EditorSettings.projectGenerationRootNamespace;
         else
         {
             // Skipping the Assets folder and a single subfolder (i.e. Scripts, Editor, Plugins, etc...)
-            for (var i = 2; i < SegmentedPath.Length; i++)
+            for (var i = 2; i < segmentedPath.Length; i++)
             {
-                GeneratedNamespace +=
-                    i == SegmentedPath.Length - 1
-                        ? SegmentedPath[i]        // Don't add '.' at the end of the namespace
-                        : SegmentedPath[i] + "."; 
+                generatedNamespace +=
+                    i == segmentedPath.Length - 1
+                        ? segmentedPath[i]        // Don't add '.' at the end of the namespace
+                        : segmentedPath[i] + "."; 
             }
             
-            FinalNamespace = EditorSettings.projectGenerationRootNamespace + "." + GeneratedNamespace;
+            finalNamespace = EditorSettings.projectGenerationRootNamespace + "." + generatedNamespace;
         }
         
-        return FinalNamespace;
+        return finalNamespace;
     }
 
     private static void OnWillCreateAsset(string metaFilePath)
     {
-        var FileName = Path.GetFileNameWithoutExtension(metaFilePath);
+        var fileName = Path.GetFileNameWithoutExtension(metaFilePath);
 
-        if (!metaFilePath.EndsWith(".cs"))
+        if (metaFilePath.EndsWith(".cs.meta")) 
+            CurrentlyCreatedFile = FileType.CSharpScript;
+        else if (metaFilePath.EndsWith(".asmdef.meta"))
+            CurrentlyCreatedFile = FileType.Asmdef;
+        else
             return;
         
         if (string.IsNullOrEmpty(EditorSettings.projectGenerationRootNamespace))
@@ -67,72 +71,72 @@ public class NamespaceResolver : AssetModificationProcessor
             Debug.LogError("Root Namespace is not set in project settings, Namespace resolver is aborted.");
             return;
         }
-        
+
         Debug.Log("CALLING CREATION OF SCRIPTS");
-        
-        FileTemplatesGenerators[CurrentlyCreatedFile].Invoke(metaFilePath, FileName);
+        FileTemplatesGenerators[CurrentlyCreatedFile].Invoke(metaFilePath, fileName);
     }
 
-    private static void GenerateCSharpMonobehaviourScript(string metaFilePath, string FileName)
+    private static void GenerateCSharpMonobehaviourScript(string metaFilePath, string fileName)
     {
-        var FinalNamespace = GenerateNamespace(metaFilePath);
-        var ActualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{FileName}";
-        var MyTemplate =
+        Debug.Log("===================> Generating a namespace");
+        var finalNamespace = GenerateNamespace(metaFilePath);
+        var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
+        var myTemplate =
             File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpMonobehaviourTemplate.cs.txt");
-        var NewContent = MyTemplate.Replace("#NAMESPACE#", Regex.Replace(FinalNamespace, @"\b \b", ""))
-            .Replace("#SCRIPTNAME#", FileName.Substring(0, FileName.IndexOf('.')));
+        var newContent = myTemplate.Replace("#NAMESPACE#", Regex.Replace(finalNamespace, @"\b \b", ""))
+            .Replace("#SCRIPTNAME#", fileName.Substring(0, fileName.IndexOf('.')));
 
-        if (MyTemplate != NewContent)
+        if (myTemplate != newContent)
         {
-            File.WriteAllText(ActualFile, NewContent);
+            File.WriteAllText(actualFile, newContent);
             AssetDatabase.Refresh();
         }
     }
 
-    private static void GenerateCSharpInterface(string metaFilePath, string FileName)
+    private static void GenerateCSharpInterface(string metaFilePath, string fileName)
     {
-        var FinalNamespace = GenerateNamespace(metaFilePath);
-        var ActualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{FileName}";
-        var MyTemplate =
+        var finalNamespace = GenerateNamespace(metaFilePath);
+        var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
+        var myTemplate =
             File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpInterfaceTemplate.cs.txt");
-        var NewContent = MyTemplate.Replace("#NAMESPACE#", Regex.Replace(FinalNamespace, @"\b \b", ""))
-            .Replace("#SCRIPTNAME#", FileName.Substring(0, FileName.IndexOf('.')));
+        var newContent = myTemplate.Replace("#NAMESPACE#", Regex.Replace(finalNamespace, @"\b \b", ""))
+            .Replace("#SCRIPTNAME#", fileName.Substring(0, fileName.IndexOf('.')));
 
-        if (MyTemplate != NewContent)
+        if (myTemplate != newContent)
         {
-            File.WriteAllText(ActualFile, NewContent);
+            File.WriteAllText(actualFile, newContent);
             AssetDatabase.Refresh();
         }
     }
     
-    private static void GenerateCSharpEnum(string metaFilePath, string FileName)
+    private static void GenerateCSharpEnum(string metaFilePath, string fileName)
     {
-        var FinalNamespace = GenerateNamespace(metaFilePath);
-        var ActualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{FileName}";
-        var MyTemplate =
+        var finalNamespace = GenerateNamespace(metaFilePath);
+        var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
+        var myTemplate =
             File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpEnumTemplate.cs.txt");
-        var NewContent = MyTemplate.Replace("#NAMESPACE#", Regex.Replace(FinalNamespace, @"\b \b", ""))
-            .Replace("#SCRIPTNAME#", FileName.Substring(0, FileName.IndexOf('.')));
+        var newContent = myTemplate.Replace("#NAMESPACE#", Regex.Replace(finalNamespace, @"\b \b", ""))
+            .Replace("#SCRIPTNAME#", fileName.Substring(0, fileName.IndexOf('.')));
 
-        if (MyTemplate != NewContent)
+        if (myTemplate != newContent)
         {
-            File.WriteAllText(ActualFile, NewContent);
+            File.WriteAllText(actualFile, newContent);
             AssetDatabase.Refresh();
         }
     }
     
-    private static void GenerateAssemblyDefinition(string metaFilePath, string FileName)
+    private static void GenerateAssemblyDefinition(string metaFilePath, string fileName)
     {
-        var FinalNamespace = GenerateNamespace(metaFilePath);
-        var ActualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{FileName}";
-        var MyTemplate =
-            File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/AssemblyDefinition.cs.txt");
-        var NewContent = MyTemplate.Replace("#NAMESPACE#", Regex.Replace(FinalNamespace, @"\b \b", ""))
-            .Replace("#SCRIPTNAME#", FileName.Substring(0, FileName.IndexOf('.')));
+        var finalNamespace = GenerateNamespace(metaFilePath);
+        var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
+        var myTemplate =
+            File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/AssemblyDefinitionTemplate.asmdef.txt");
+        var newContent = myTemplate.Replace("#NAMESPACE#", $"\"{Regex.Replace(finalNamespace, @"\b \b", "")}\"");
+        newContent = newContent.Replace("#ROOTNAMESPACE#", $"\"{EditorSettings.projectGenerationRootNamespace}\"");
 
-        if (MyTemplate != NewContent)
+        if (myTemplate != newContent)
         {
-            File.WriteAllText(ActualFile, NewContent);
+            File.WriteAllText(actualFile, newContent);
             AssetDatabase.Refresh();
         }
     }
@@ -141,7 +145,7 @@ public class NamespaceResolver : AssetModificationProcessor
     {
         if (!sourcePath.EndsWith(".cs"))
         {
-            Debug.Log("Moving none cs file" + sourcePath);
+            Debug.Log("<color=yellow>Moving none cs file" + sourcePath + "</color>");
             
             if (File.GetAttributes(sourcePath).HasFlag(FileAttributes.Directory))
             {
@@ -151,9 +155,8 @@ public class NamespaceResolver : AssetModificationProcessor
                         GenerateNamespace(file + ".meta"), "namespace"));
             }
             else
-            {
                 File.Move(sourcePath, destinationPath);
-            }
+            
             
             File.Move(sourcePath + ".meta", destinationPath + ".meta");
             return AssetMoveResult.DidMove;
@@ -170,27 +173,27 @@ public class NamespaceResolver : AssetModificationProcessor
     //The worst thing about this approach is that we need to read the whole file which is unnecessary...
     private static void ChangeOrAddLine(string filePath, string newLine, string beginningTextLine = "")
     {
-        using var Fs = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
-        using var Sr = new StreamReader(Fs);
-        using var Sw = new StreamWriter(Fs);
+        using var fs = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
+        using var sr = new StreamReader(fs);
+        using var sw = new StreamWriter(fs);
         
-        var Lines = Sr.ReadToEnd().Split(new string[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToList();
-        Fs.Position = 0;
+        var lines = sr.ReadToEnd().Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToList();
+        fs.Position = 0;
         if (beginningTextLine != "")
         {
-            for (var i = 0; i < Lines.Count; i++)
+            for (var i = 0; i < lines.Count; i++)
             {
-                var SplitLine = Lines[i].Split(' ');
-                if (SplitLine[0] == beginningTextLine)
+                var splitLine = lines[i].Split(' ');
+                if (splitLine[0] == beginningTextLine)
                 {
-                    SplitLine[1] = newLine;
-                    Lines[i] = SplitLine[0] + " " + SplitLine[1];
+                    splitLine[1] = newLine;
+                    lines[i] = splitLine[0] + " " + splitLine[1];
                     break;
                 }
             }
         }
-        Sw.Write(string.Join("\r\n", Lines));
-        Fs.SetLength(Fs.Position);
+        sw.Write(string.Join("\r\n", lines));
+        fs.SetLength(fs.Position);
     }
 }
 #endif

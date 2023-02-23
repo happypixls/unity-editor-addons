@@ -3,8 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// This is from https://wp.flyingshapes.com/dont-use-monobehaviour-invoke-or-how-to-properly-invoke-a-method/
-// Besides other added
+// This is based on https://wp.flyingshapes.com/dont-use-monobehaviour-invoke-or-how-to-properly-invoke-a-method/
 public static class MonoBehaviourExtensions
 {
     public static void Invoke(this MonoBehaviour mb, Action method, float delay) =>

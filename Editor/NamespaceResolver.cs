@@ -59,10 +59,14 @@ public class NamespaceResolver : AssetModificationProcessor
     {
         var fileName = Path.GetFileNameWithoutExtension(metaFilePath);
 
-        if (metaFilePath.EndsWith(".cs.meta")) 
+        
+        if (metaFilePath.EndsWith(".cs.meta") && CurrentlyCreatedFile == FileType.None) 
             CurrentlyCreatedFile = FileType.CSharpScript;
         else if (metaFilePath.EndsWith(".asmdef.meta"))
+        {
+            Debug.Log("Attempting to create assembly definition file");
             CurrentlyCreatedFile = FileType.Asmdef;
+        }
         else
             return;
         
@@ -74,6 +78,7 @@ public class NamespaceResolver : AssetModificationProcessor
 
         Debug.Log("CALLING CREATION OF SCRIPTS");
         FileTemplatesGenerators[CurrentlyCreatedFile].Invoke(metaFilePath, fileName);
+        CurrentlyCreatedFile = FileType.None; //This is set in order not to conflict with cs interface creation or enums 
     }
 
     private static void GenerateCSharpMonobehaviourScript(string metaFilePath, string fileName)
@@ -127,6 +132,7 @@ public class NamespaceResolver : AssetModificationProcessor
     
     private static void GenerateAssemblyDefinition(string metaFilePath, string fileName)
     {
+        Debug.Log("<color=yellow> Creating assembly definition file </color>");
         var finalNamespace = GenerateNamespace(metaFilePath);
         var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
         var myTemplate =
@@ -150,13 +156,12 @@ public class NamespaceResolver : AssetModificationProcessor
             if (File.GetAttributes(sourcePath).HasFlag(FileAttributes.Directory))
             {
                 Directory.Move(sourcePath, destinationPath);
-                Directory.EnumerateFiles(destinationPath).ToList().ForEach(file => 
+                Directory.EnumerateFiles(destinationPath).ToList().ForEach(file =>
                     ChangeOrAddLine(file, 
                         GenerateNamespace(file + ".meta"), "namespace"));
             }
             else
                 File.Move(sourcePath, destinationPath);
-            
             
             File.Move(sourcePath + ".meta", destinationPath + ".meta");
             return AssetMoveResult.DidMove;

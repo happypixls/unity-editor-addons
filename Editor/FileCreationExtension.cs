@@ -6,6 +6,7 @@ public class FileCreationExtension : MonoBehaviour
     [MenuItem("Assets/Create/C# Interface", false, 75)]
     private static void CreateNewCSharpInterface()
     {
+        Debug.Log("Attempting to create interface from template");
         NamespaceResolver.CurrentlyCreatedFile = FileType.InterfaceFile;
         ProjectWindowUtil.CreateScriptAssetFromTemplateFile("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpInterfaceTemplate.cs.txt", 
             "IInterface.cs");

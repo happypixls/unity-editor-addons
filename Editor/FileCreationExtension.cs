@@ -1,24 +1,27 @@
 using UnityEditor;
 using UnityEngine;
 
-public class FileCreationExtension : MonoBehaviour
+namespace HappyPixels.EditorAddons
 {
-    [MenuItem("Assets/Create/C# Interface", false, 75)]
-    private static void CreateNewCSharpInterface()
+    public class FileCreationExtension : MonoBehaviour
     {
-        Debug.Log("Attempting to create interface from template");
-        NamespaceResolver.CurrentlyCreatedFile = FileType.InterfaceFile;
-        ProjectWindowUtil.CreateScriptAssetFromTemplateFile("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpInterfaceTemplate.cs.txt", 
-            "IInterface.cs");
-        AssetDatabase.Refresh();
-    }
-    
-    [MenuItem("Assets/Create/C# Enum", false, 76)]
-    private static void CreateNewCSharpEnum()
-    {
-        NamespaceResolver.CurrentlyCreatedFile = FileType.EnumFile;
-        ProjectWindowUtil.CreateScriptAssetFromTemplateFile("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpEnumTemplate.cs.txt",
-            "Enum.cs");
-        AssetDatabase.Refresh();
+        [MenuItem("Assets/Create/C# Interface", false, 75)]
+        private static void CreateNewCSharpInterface()
+        {
+            Debug.Log("Attempting to create interface from template");
+            NamespaceResolver.CurrentlyCreatedFile = FileType.InterfaceFile;
+            ProjectWindowUtil.CreateScriptAssetFromTemplateFile("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpInterfaceTemplate.cs.txt", 
+                "IInterface.cs");
+            AssetDatabase.Refresh();
+        }
+        
+        [MenuItem("Assets/Create/C# Enum", false, 76)]
+        private static void CreateNewCSharpEnum()
+        {
+            NamespaceResolver.CurrentlyCreatedFile = FileType.EnumFile;
+            ProjectWindowUtil.CreateScriptAssetFromTemplateFile("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpEnumTemplate.cs.txt",
+                "Enum.cs");
+            AssetDatabase.Refresh();
+        }
     }
 }

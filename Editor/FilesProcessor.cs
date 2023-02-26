@@ -2,24 +2,27 @@ using System.IO;
 using UnityEngine;
 using UnityEditor;
 
-public class FilesProcessor : AssetPostprocessor
+namespace HappyPixels.EditorAddons
 {
-    private void OnPreprocessAsset()
+    public class FilesProcessor : AssetPostprocessor
     {
-        if (assetImporter.importSettingsMissing)
+        private void OnPreprocessAsset()
         {
-            Debug.Log($"Outside modification => {assetImporter.assetPath}");
-            if (!File.GetAttributes(assetImporter.assetPath).HasFlag(FileAttributes.Directory))
+            if (assetImporter.importSettingsMissing)
             {
-                NamespaceResolver.OnWillMoveAsset(assetImporter.assetPath, assetImporter.assetPath);
+                Debug.Log($"Outside modification => {assetImporter.assetPath}");
+                if (!File.GetAttributes(assetImporter.assetPath).HasFlag(FileAttributes.Directory))
+                {
+                    NamespaceResolver.OnWillMoveAsset(assetImporter.assetPath, assetImporter.assetPath);
+                }
             }
-            // ModelImporter modelImporter = assetImporter as ModelImporter;
-            // if (modelImporter != null)
-            // {
-            //     if (!assetPath.Contains("@"))
-            //         modelImporter.importAnimation = false;
-            //     modelImporter.materialImportMode = ModelImporterMaterialImportMode.None;
-            // }
+        }
+
+        private static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets,
+            string[] movedFromAssetPaths)
+        {
+            Debug.Log($"<color=purple>OnProcessallAssets is called</color> imported = {importedAssets.Length}," +
+                        $" deleted = {deletedAssets.Length}, moved = {movedAssets.Length}, movedFromAssetPaths = {movedFromAssetPaths.Length}");
         }
     }
 }

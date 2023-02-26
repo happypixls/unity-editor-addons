@@ -1,6 +1,6 @@
 {
     "name": "HappyPixels.EditorAddons",
-    "rootNamespace": "",
+    "rootNamespace": "EditorAddons",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],

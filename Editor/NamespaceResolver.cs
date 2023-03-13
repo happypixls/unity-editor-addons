@@ -66,8 +66,8 @@ namespace HappyPixels.EditorAddons
             }
             
             var fileName = Path.GetFileNameWithoutExtension(metaFilePath);
-
-            if (metaFilePath.EndsWith(".cs.meta") )
+            
+            if (fileName.EndsWith(".cs") )
             {
                 switch (CurrentlyCreatedFile)
                 {
@@ -90,9 +90,7 @@ namespace HappyPixels.EditorAddons
                 FileTemplatesGenerators[CurrentlyCreatedFile].Invoke(metaFilePath, fileName);
                 
                 CurrentlyCreatedFile = FileType.None; //This is set in order not to conflict with cs interface creation or enums 
-                return;
             }
-            
         }
 
         private static void GenerateCSharpMonobehaviourScript(string metaFilePath, string fileName)
@@ -166,19 +164,15 @@ namespace HappyPixels.EditorAddons
             if (File.GetAttributes(sourcePath).HasFlag(FileAttributes.Directory))
             {
                 MoveFolderWithContent(sourcePath, destinationPath);
+                File.Move(sourcePath + ".meta", destinationPath + ".meta");
+                return AssetMoveResult.DidMove;
             }
-            else if (sourcePath.EndsWith(".cs"))
-            {
+            
+            if (sourcePath.EndsWith(".cs"))
                 ChangeOrAddLine(sourcePath, GenerateNamespace(destinationPath + ".meta"), "namespace");
-
-                File.Move(sourcePath, destinationPath);
-                File.Move(sourcePath + ".meta", destinationPath + ".meta");
-            }
-            else
-            {
-                File.Move(sourcePath, destinationPath);
-                File.Move(sourcePath + ".meta", destinationPath + ".meta");
-            }
+            
+            File.Move(sourcePath, destinationPath);
+            File.Move(sourcePath + ".meta", destinationPath + ".meta");
             
             return AssetMoveResult.DidMove;
         }
@@ -187,20 +181,23 @@ namespace HappyPixels.EditorAddons
         {
             Debug.Log("<color=yellow> Moving folder with content </color>");
             Directory.Move(sourcePath, destinationPath);
-            Directory.EnumerateFiles(destinationPath).ToList().ForEach(file =>
-            {
-                Debug.Log($"<color=green>{file}</color>");
-                if (file.EndsWith(".asmdef"))
+            
+            Directory.EnumerateFiles(destinationPath, "*.cs", SearchOption.AllDirectories)
+                .Union(Directory.EnumerateFiles(destinationPath, "*.asmdef", SearchOption.AllDirectories))
+                .ToList()
+                .ForEach(file =>
                 {
-                    //TODO: Change this to ChangeOrAddLine custom method for asemdef files
-                    FileTemplatesGenerators[FileType.Asmdef].Invoke(file + ".meta", Path.GetFileName(file));
-                }
-                else if (file.EndsWith(".cs"))
-                {
-                    ChangeOrAddLine(file, GenerateNamespace(destinationPath + Path.DirectorySeparatorChar), "namespace");
-                }
-            }); 
-            File.Move(sourcePath + ".meta", destinationPath + ".meta");
+                    Debug.Log($"<color=green>{file}</color>");
+                    if (file.EndsWith(".asmdef"))
+                    {
+                        //TODO: Change this to ChangeOrAddLine custom method for asemdef files
+                        FileTemplatesGenerators[FileType.Asmdef].Invoke(file + ".meta", Path.GetFileName(file));
+                    }
+                    else if (file.EndsWith(".cs"))
+                    {
+                        ChangeOrAddLine(file, GenerateNamespace(Path.GetDirectoryName(file) + Path.DirectorySeparatorChar), "namespace");
+                    }
+                });
         }
 
         private static void ChangeOrAddLine(string filePath, string newLine, string beginningTextLine = "")

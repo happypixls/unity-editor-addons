@@ -13,18 +13,20 @@ namespace HappyPixels.EditorAddons
     {
         None = -1,
         CSharpScript = 0,
-        InterfaceFile = 1,
-        EnumFile = 2,
-        Asmdef = 3,
+        CSharpClass = 1,
+        InterfaceFile = 2,
+        EnumFile = 3,
+        Asmdef = 4,
     }
     
     public class NamespaceResolver : AssetModificationProcessor
     {
-        public static FileType CurrentlyCreatedFile { get; set; } = FileType.None;
+        internal static FileType CurrentlyCreatedFile { get; set; } = FileType.None;
         private static Dictionary<FileType, Action<string, string>> FileTemplatesGenerators { get; } = 
             new() 
             {
                 { FileType.CSharpScript, GenerateCSharpMonobehaviourScript },
+                { FileType.CSharpClass, GenerateCSharpClass },
                 { FileType.InterfaceFile, GenerateCSharpInterface },
                 { FileType.EnumFile, GenerateCSharpEnum },
                 { FileType.Asmdef, GenerateAssemblyDefinition },
@@ -85,7 +87,6 @@ namespace HappyPixels.EditorAddons
             
             if (metaFilePath.EndsWith(".asmdef.meta"))
             {
-                Debug.Log("Attempting to create assembly definition file");
                 CurrentlyCreatedFile = FileType.Asmdef;
                 FileTemplatesGenerators[CurrentlyCreatedFile].Invoke(metaFilePath, fileName);
                 
@@ -95,11 +96,26 @@ namespace HappyPixels.EditorAddons
 
         private static void GenerateCSharpMonobehaviourScript(string metaFilePath, string fileName)
         {
-            Debug.Log("===================> Generating a namespace");
             var finalNamespace = GenerateNamespace(metaFilePath);
             var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
             var myTemplate =
                 File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpMonobehaviourTemplate.cs.txt");
+            var newContent = myTemplate.Replace("#NAMESPACE#", Regex.Replace(finalNamespace, @"\b \b", ""))
+                .Replace("#SCRIPTNAME#", fileName.Substring(0, fileName.IndexOf('.')));
+
+            if (myTemplate != newContent)
+            {
+                File.WriteAllText(actualFile, newContent);
+                AssetDatabase.Refresh();
+            }
+        }
+        
+        private static void GenerateCSharpClass(string metaFilePath, string fileName)
+        {
+            var finalNamespace = GenerateNamespace(metaFilePath);
+            var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
+            var myTemplate =
+                File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpClassTemplate.cs.txt");
             var newContent = myTemplate.Replace("#NAMESPACE#", Regex.Replace(finalNamespace, @"\b \b", ""))
                 .Replace("#SCRIPTNAME#", fileName.Substring(0, fileName.IndexOf('.')));
 
@@ -144,7 +160,6 @@ namespace HappyPixels.EditorAddons
         
         private static void GenerateAssemblyDefinition(string metaFilePath, string fileName)
         {
-            Debug.Log("<color=yellow> Creating assembly definition file </color>");
             var finalNamespace = GenerateNamespace(metaFilePath);
             var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
             var myTemplate =
@@ -159,7 +174,7 @@ namespace HappyPixels.EditorAddons
             }
         }
         
-        public static AssetMoveResult OnWillMoveAsset(string sourcePath, string destinationPath)
+        private static AssetMoveResult OnWillMoveAsset(string sourcePath, string destinationPath)
         {
             if (File.GetAttributes(sourcePath).HasFlag(FileAttributes.Directory))
             {
@@ -179,7 +194,6 @@ namespace HappyPixels.EditorAddons
 
         private static void MoveFolderWithContent(string sourcePath, string destinationPath)
         {
-            Debug.Log("<color=yellow> Moving folder with content </color>");
             Directory.Move(sourcePath, destinationPath);
             
             Directory.EnumerateFiles(destinationPath, "*.cs", SearchOption.AllDirectories)
@@ -187,7 +201,6 @@ namespace HappyPixels.EditorAddons
                 .ToList()
                 .ForEach(file =>
                 {
-                    Debug.Log($"<color=green>{file}</color>");
                     if (file.EndsWith(".asmdef"))
                     {
                         //TODO: Change this to ChangeOrAddLine custom method for asemdef files

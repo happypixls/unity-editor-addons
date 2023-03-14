@@ -85,7 +85,7 @@ namespace HappyPixels.EditorAddons
                 return;
             }
             
-            if (metaFilePath.EndsWith(".asmdef.meta"))
+            if (fileName.EndsWith(".asmdef"))
             {
                 CurrentlyCreatedFile = FileType.Asmdef;
                 FileTemplatesGenerators[CurrentlyCreatedFile].Invoke(metaFilePath, fileName);

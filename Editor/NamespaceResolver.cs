@@ -183,8 +183,15 @@ namespace HappyPixels.EditorAddons
                 return AssetMoveResult.DidMove;
             }
             
-            if (sourcePath.EndsWith(".cs"))
-                ChangeOrAddLine(sourcePath, GenerateNamespace(destinationPath + ".meta"), "namespace");
+            if (sourcePath.EndsWith(".cs")) 
+                ChangeOrAddLine(sourcePath,GenerateNamespace(destinationPath + ".meta"), "namespace", ' ', (s1, s2, c) => $"{s1}{c}{s2}");
+
+            if (sourcePath.EndsWith(".asmdef"))
+            {
+                var generatedNamespace = GenerateNamespace(destinationPath + ".meta");
+                Debug.Log(generatedNamespace);
+                ChangeOrAddLine(sourcePath, generatedNamespace, "\"name\"", ':', (s1, s2, c) => $"{s1}{c} \"{s2}\",");
+            }
             
             File.Move(sourcePath, destinationPath);
             File.Move(sourcePath + ".meta", destinationPath + ".meta");
@@ -203,17 +210,18 @@ namespace HappyPixels.EditorAddons
                 {
                     if (file.EndsWith(".asmdef"))
                     {
-                        //TODO: Change this to ChangeOrAddLine custom method for asemdef files
-                        FileTemplatesGenerators[FileType.Asmdef].Invoke(file + ".meta", Path.GetFileName(file));
+                        var generatedNamespace = GenerateNamespace(Path.GetDirectoryName(file) + Path.DirectorySeparatorChar);
+                        ChangeOrAddLine(file, generatedNamespace, "\"name\"", ':', (s1, s2, c) => $"{s1}{c} \"{s2}\",");
                     }
                     else if (file.EndsWith(".cs"))
                     {
-                        ChangeOrAddLine(file, GenerateNamespace(Path.GetDirectoryName(file) + Path.DirectorySeparatorChar), "namespace");
+                        var generatedNamespace = GenerateNamespace(Path.GetDirectoryName(file) + Path.DirectorySeparatorChar);
+                        ChangeOrAddLine(file,generatedNamespace, "namespace", ' ', (s1, s2, c) => $"{s1}{c}{s2}");
                     }
                 });
         }
 
-        private static void ChangeOrAddLine(string filePath, string newLine, string beginningTextLine = "")
+        private static void ChangeOrAddLine(string filePath, string newLine, string beginningTextLine, char splittingChar, Func<string, string, char, string> returnedFormattedLine)
         {
             using var fs = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
             using var sr = new StreamReader(fs);
@@ -225,11 +233,14 @@ namespace HappyPixels.EditorAddons
             {
                 for (var i = 0; i < lines.Count; i++)
                 {
-                    var splitLine = lines[i].Split(' ');
-                    if (splitLine[0] == beginningTextLine)
+                    var splitLine = lines[i].Split(splittingChar);
+                    
+                    var lineWithoutSpaces = Regex.Replace(splitLine[0], @"\s+", "");
+
+                    if (lineWithoutSpaces == beginningTextLine)
                     {
                         splitLine[1] = newLine;
-                        lines[i] = splitLine[0] + " " + splitLine[1];
+                        lines[i] = returnedFormattedLine(splitLine[0], splitLine[1], splittingChar);
                         break;
                     }
                 }

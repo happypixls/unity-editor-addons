@@ -133,7 +133,7 @@ namespace HappyPixels.EditorAddons
             }
 
             if (IsCsFile(sourcePath)) 
-                ChangeNamespace(sourcePath, destinationPath);
+                ChangeCSFileContent(sourcePath, destinationPath);
 
             if (IsAsmdefFile(sourcePath))
                 ChangeAsmdefContent(sourcePath, destinationPath);
@@ -144,7 +144,7 @@ namespace HappyPixels.EditorAddons
             return AssetMoveResult.DidMove;
         }
         
-        private static void ChangeNamespace(string filePath, string destinationPath)
+        private static void ChangeCSFileContent(string filePath, string destinationPath)
         {
             var generatedNamespace = GenerateNamespace($"{destinationPath}.meta");
             ChangeOrAddLine(filePath, generatedNamespace, "namespace", ' ', (s1, s2, c) => $"{s1}{c}{s2}");

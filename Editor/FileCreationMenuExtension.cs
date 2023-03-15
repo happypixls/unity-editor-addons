@@ -9,8 +9,7 @@ namespace HappyPixels.EditorAddons
         private static void CreateNewCSharpClass()
         {
             TemplateGenerationManagement.CurrentlyCreatedFile = FileType.CSharpClass;
-            ProjectWindowUtil.CreateScriptAssetFromTemplateFile("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpClassTemplate.cs.txt",
-                "Class.cs");
+            ProjectWindowUtil.CreateScriptAssetFromTemplateFile(Constants.DEFAULT_CSHARP_CLASS_TEMPLATE_PATH, "Class.cs");
             AssetDatabase.Refresh();
         }
         
@@ -18,8 +17,7 @@ namespace HappyPixels.EditorAddons
         private static void CreateNewCSharpInterface()
         {
             TemplateGenerationManagement.CurrentlyCreatedFile = FileType.InterfaceFile;
-            ProjectWindowUtil.CreateScriptAssetFromTemplateFile("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpInterfaceTemplate.cs.txt", 
-                "IInterface.cs");
+            ProjectWindowUtil.CreateScriptAssetFromTemplateFile(Constants.DEFAULT_CSHARP_INTERFACE_TEMPLATE_PATH, "IInterface.cs");
             AssetDatabase.Refresh();
         }
         
@@ -27,8 +25,7 @@ namespace HappyPixels.EditorAddons
         private static void CreateNewCSharpEnum()
         {
             TemplateGenerationManagement.CurrentlyCreatedFile = FileType.EnumFile;
-            ProjectWindowUtil.CreateScriptAssetFromTemplateFile("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpEnumTemplate.cs.txt",
-                "Enum.cs");
+            ProjectWindowUtil.CreateScriptAssetFromTemplateFile(Constants.DEFAULT_CSHARP_ENUM_TEMPLATE_PATH, "Enum.cs");
             AssetDatabase.Refresh();
         }
     }

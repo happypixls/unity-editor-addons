@@ -11,7 +11,6 @@ namespace HappyPixels.EditorAddons
 {
     public enum FileType
     {
-        None = -1,
         CSharpScript = 0,
         CSharpClass = 1,
         InterfaceFile = 2,
@@ -21,7 +20,11 @@ namespace HappyPixels.EditorAddons
     
     public class NamespaceResolver : AssetModificationProcessor
     {
-        internal static FileType CurrentlyCreatedFile { get; set; } = FileType.None;
+        internal static FileType CurrentlyCreatedFile { get; set; } = FileType.CSharpScript;
+        private static bool IsDirectory(string path) => File.GetAttributes(path).HasFlag(FileAttributes.Directory);
+        private static bool IsCsFile(string path) => path.EndsWith(".cs");
+        private static bool IsAsmdefFile(string path) => path.EndsWith(".asmdef");
+        
         private static Dictionary<FileType, Action<string, string>> FileTemplatesGenerators { get; } = 
             new() 
             {
@@ -31,35 +34,14 @@ namespace HappyPixels.EditorAddons
                 { FileType.EnumFile, GenerateCSharpEnum },
                 { FileType.Asmdef, GenerateAssemblyDefinition },
             };
-        
-        private static bool IsDirectory(string path) => File.GetAttributes(path).HasFlag(FileAttributes.Directory);
-        private static bool IsCsFile(string path) => path.EndsWith(".cs");
-        private static bool IsAsmdefFile(string path) => path.EndsWith(".asmdef");
+
         private static string GenerateNamespace(string metaFilePath)
         {
-            var segmentedPath = $"{Path.GetDirectoryName(metaFilePath)}".Split(new[] { Path.DirectorySeparatorChar }, StringSplitOptions.None);
-
-            var generatedNamespace = "";
-            var finalNamespace = "";
-
-            // In case of placing the class at the root of a folder such as (Editor, Scripts, etc...)  
-            if (segmentedPath.Length <= 2)
-                finalNamespace = EditorSettings.projectGenerationRootNamespace;
-            else
-            {
-                // Skipping the Assets folder and a single subfolder (i.e. Scripts, Editor, Plugins, etc...)
-                for (var i = 2; i < segmentedPath.Length; i++)
-                {
-                    generatedNamespace +=
-                        i == segmentedPath.Length - 1
-                            ? segmentedPath[i]        // Don't add '.' at the end of the namespace
-                            : segmentedPath[i] + "."; 
-                }
-                
-                finalNamespace = EditorSettings.projectGenerationRootNamespace + "." + generatedNamespace;
-            }
-            
-            return finalNamespace;
+            var segmentedPath = Path.GetDirectoryName(metaFilePath)?.Split(Path.DirectorySeparatorChar);
+            var generatedNamespace = string.Join(".", segmentedPath?.Skip(2) ?? Array.Empty<string>());
+            return string.IsNullOrEmpty(generatedNamespace)
+                ? EditorSettings.projectGenerationRootNamespace
+                : $"{EditorSettings.projectGenerationRootNamespace}.{generatedNamespace}";
         }
 
         private static void OnWillCreateAsset(string metaFilePath)
@@ -72,11 +54,11 @@ namespace HappyPixels.EditorAddons
             
             var fileName = Path.GetFileNameWithoutExtension(metaFilePath);
             
-            if (fileName.EndsWith(".cs") )
+            if (IsCsFile(fileName))
             {
                 switch (CurrentlyCreatedFile)
                 {
-                    case FileType.None:
+                    case FileType.CSharpScript:
                         FileTemplatesGenerators[FileType.CSharpScript].Invoke(metaFilePath, fileName);
                         break;
                     default:
@@ -84,16 +66,16 @@ namespace HappyPixels.EditorAddons
                         break;
                 }
 
-                CurrentlyCreatedFile = FileType.None;
+                CurrentlyCreatedFile = FileType.CSharpScript;
                 return;
             }
             
-            if (fileName.EndsWith(".asmdef"))
+            if (IsAsmdefFile(fileName))
             {
                 CurrentlyCreatedFile = FileType.Asmdef;
                 FileTemplatesGenerators[CurrentlyCreatedFile].Invoke(metaFilePath, fileName);
                 
-                CurrentlyCreatedFile = FileType.None; //This is set in order not to conflict with cs interface creation or enums 
+                CurrentlyCreatedFile = FileType.CSharpScript; //This is set in order not to conflict with cs interface, enums or POC creation
             }
         }
 
@@ -164,40 +146,38 @@ namespace HappyPixels.EditorAddons
         
         private static void ChangeNamespace(string filePath, string destinationPath)
         {
-            var generatedNamespace = GenerateNamespace(destinationPath + ".meta");
+            var generatedNamespace = GenerateNamespace($"{destinationPath}.meta");
             ChangeOrAddLine(filePath, generatedNamespace, "namespace", ' ', (s1, s2, c) => $"{s1}{c}{s2}");
         }
 
         private static void ChangeAsmdefContent(string filePath, string destinationPath)
         {
-            var generatedName = GenerateNamespace(destinationPath + ".meta");
+            var generatedName = GenerateNamespace($"{destinationPath}.meta");
             ChangeOrAddLine(filePath, $"\"{generatedName}\",", "\"name\"", ':', (s1, s2, c) => $"{s1}{c} \"{s2}\",");
         }
 
         private static void MoveFile(string sourcePath, string destinationPath) => 
             File.Move(sourcePath, destinationPath);
         private static void MoveMetaFile(string sourcePath, string destinationPath) => 
-            File.Move(sourcePath + ".meta", destinationPath + ".meta");
+            File.Move($"{sourcePath}.meta", $"{destinationPath}.meta");
         
         private static void MoveFolderWithContent(string sourcePath, string destinationPath)
         {
             Directory.Move(sourcePath, destinationPath);
             
-            Directory.EnumerateFiles(destinationPath, "*.cs", SearchOption.AllDirectories)
-                .Union(Directory.EnumerateFiles(destinationPath, "*.asmdef", SearchOption.AllDirectories))
+            var supportedExtensions = new[] { ".cs", ".asmdef" };
+            Directory.EnumerateFiles(destinationPath, "*", SearchOption.AllDirectories)
+                .Where(file => supportedExtensions.Contains(Path.GetExtension(file)))
                 .ToList()
                 .ForEach(file =>
                 {
-                    if (file.EndsWith(".asmdef"))
-                    {
-                        var generatedNamespace = GenerateNamespace(Path.GetDirectoryName(file) + Path.DirectorySeparatorChar);
+                    var generatedNamespace = GenerateNamespace(Path.GetDirectoryName(file) + Path.DirectorySeparatorChar);
+                    if (IsAsmdefFile(file))
                         ChangeOrAddLine(file, generatedNamespace, "\"name\"", ':', (s1, s2, c) => $"{s1}{c} \"{s2}\",");
-                    }
-                    else if (file.EndsWith(".cs"))
-                    {
-                        var generatedNamespace = GenerateNamespace(Path.GetDirectoryName(file) + Path.DirectorySeparatorChar);
+                    
+                    else if (IsCsFile(file))
                         ChangeOrAddLine(file,generatedNamespace, "namespace", ' ', (s1, s2, c) => $"{s1}{c}{s2}");
-                    }
+                    
                 });
         }
         

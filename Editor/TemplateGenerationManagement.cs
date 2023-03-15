@@ -4,15 +4,6 @@ using UnityEditor;
 
 namespace HappyPixels.EditorAddons
 {
-    public enum FileType
-    {
-        CSharpScript = 0,
-        CSharpClass = 1,
-        InterfaceFile = 2,
-        EnumFile = 3,
-        Asmdef = 4,
-    }
-    
     internal static class TemplateGenerationManagement
     {
         internal static FileType CurrentlyCreatedFile { get; set; } = FileType.CSharpScript;

@@ -22,7 +22,7 @@ namespace HappyPixels.EditorAddons
     {
         internal static FileType CurrentlyCreatedFile { get; set; } = FileType.CSharpScript;
         private static bool IsDirectory(string path) => File.GetAttributes(path).HasFlag(FileAttributes.Directory);
-        private static bool IsCsFile(string path) => path.EndsWith(".cs");
+        private static bool IsCSFile(string path) => path.EndsWith(".cs");
         private static bool IsAsmdefFile(string path) => path.EndsWith(".asmdef");
         
         private static Dictionary<FileType, Action<string, string>> FileTemplatesGenerators { get; } = 
@@ -54,7 +54,7 @@ namespace HappyPixels.EditorAddons
             
             var fileName = Path.GetFileNameWithoutExtension(metaFilePath);
             
-            if (IsCsFile(fileName))
+            if (IsCSFile(fileName))
             {
                 switch (CurrentlyCreatedFile)
                 {
@@ -96,21 +96,21 @@ namespace HappyPixels.EditorAddons
         }
 
         private static void GenerateCSharpMonobehaviourScript(string metaFilePath, string fileName) =>
-            GenerateScript(metaFilePath, fileName, "Packages/com.happypixels.editoraddons/Editor/Templates/CSharpMonobehaviourTemplate.cs.txt");
+            GenerateScript(metaFilePath, fileName, Constants.DEFAULT_MONOBEHAVIOUR_TEMPLATE_PATH);
 
         private static void GenerateCSharpClass(string metaFilePath, string fileName) =>
-            GenerateScript(metaFilePath, fileName, "Packages/com.happypixels.editoraddons/Editor/Templates/CSharpClassTemplate.cs.txt");
-        
+            GenerateScript(metaFilePath, fileName, Constants.DEFAULT_CSHARP_CLASS_TEMPLATE_PATH);
+
         private static void GenerateCSharpInterface(string metaFilePath, string fileName) =>
-            GenerateScript(metaFilePath, fileName, "Packages/com.happypixels.editoraddons/Editor/Templates/CSharpInterfaceTemplate.cs.txt");
+            GenerateScript(metaFilePath, fileName, Constants.DEFAULT_CSHARP_INTERFACE_TEMPLATE_PATH);
 
         private static void GenerateCSharpEnum(string metaFilePath, string fileName) =>
-            GenerateScript(metaFilePath, fileName, "Packages/com.happypixels.editoraddons/Editor/Templates/CSharpEnumTemplate.cs.txt");
-        
+            GenerateScript(metaFilePath, fileName, Constants.DEFAULT_CSHARP_ENUM_PATH);
+
         private static void GenerateAssemblyDefinition(string metaFilePath, string fileName)
         {
             var actualFile = Path.Combine(Path.GetDirectoryName(metaFilePath), fileName);
-            var myTemplate = File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/AssemblyDefinitionTemplate.asmdef.txt");
+            var myTemplate = File.ReadAllText(Constants.DEFAULT_ASMDEF_TEMPLATE_PATH);
             var finalNamespace = GenerateNamespace(metaFilePath);
             var newContent = myTemplate
                 .Replace("#NAMESPACE#", $"\"{Regex.Replace(finalNamespace, @"\b \b", "")}\"")
@@ -132,7 +132,7 @@ namespace HappyPixels.EditorAddons
                 return AssetMoveResult.DidMove;
             }
 
-            if (IsCsFile(sourcePath)) 
+            if (IsCSFile(sourcePath)) 
                 ChangeCSFileContent(sourcePath, destinationPath);
 
             if (IsAsmdefFile(sourcePath))
@@ -175,7 +175,7 @@ namespace HappyPixels.EditorAddons
                     if (IsAsmdefFile(file))
                         ChangeOrAddLine(file, generatedNamespace, "\"name\"", ':', (s1, s2, c) => $"{s1}{c} \"{s2}\",");
                     
-                    else if (IsCsFile(file))
+                    else if (IsCSFile(file))
                         ChangeOrAddLine(file,generatedNamespace, "namespace", ' ', (s1, s2, c) => $"{s1}{c}{s2}");
                     
                 });

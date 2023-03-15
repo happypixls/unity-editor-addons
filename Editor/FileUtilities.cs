@@ -25,5 +25,6 @@ namespace HappyPixels.EditorAddons
                 .ToList()
                 .ForEach(contentModifier);
         }
+
     }
 }

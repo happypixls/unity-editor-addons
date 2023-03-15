@@ -1,4 +1,3 @@
-
 namespace HappyPixels.EditorAddons.Extensions
 {
     public static class Calculators

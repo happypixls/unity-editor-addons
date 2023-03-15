@@ -20,21 +20,25 @@ namespace HappyPixels.EditorAddons
                 { FileType.Asmdef, TemplateGenerationManagement.GenerateAssemblyDefinition },
             };
         
-        private static void ChangeCSFileContent(string filePath, string destinationPath)
-        {
-            var generatedNamespace = NamespaceResolver.GenerateNamespace($"{destinationPath}.meta");
+        private static void ChangeCSFileContent(string filePath, string generatedNamespace) =>
             ChangeOrAddLine(filePath, generatedNamespace, "namespace", ' ', (s1, s2, c) => $"{s1}{c}{s2}");
-        }
 
-        private static void ChangeAsmdefContent(string filePath, string destinationPath)
-        {
-            var generatedName = NamespaceResolver.GenerateNamespace($"{destinationPath}.meta");
-            ChangeOrAddLine(filePath, $"\"{generatedName}\",", "\"name\"", ':', (s1, s2, c) => $"{s1}{c} \"{s2}\",");
-        }
+        private static void ChangeAsmdefContent(string filePath, string generatedNamespace) =>
+            ChangeOrAddLine(filePath, $"\"{generatedNamespace}\",", "\"name\"", ':', (s1, s2, c) => $"{s1}{c} \"{s2}\",");
 
         private static void FileModifier(string fileContent)
         {
             var generatedNamespace = NamespaceResolver.GenerateNamespace(Path.GetDirectoryName(fileContent) + Path.DirectorySeparatorChar);
+            if (FileUtilities.IsAsmdefFile(fileContent))
+                ChangeOrAddLine(fileContent, generatedNamespace, "\"name\"", ':', (s1, s2, c) => $"{s1}{c} \"{s2}\",");
+                    
+            else if (FileUtilities.IsCSFile(fileContent))
+                ChangeOrAddLine(fileContent,generatedNamespace, "namespace", ' ', (s1, s2, c) => $"{s1}{c}{s2}");
+        }
+        
+        private static void FileModifierV2(string fileContent, string generatedNamespace)
+        {
+            //var generatedNamespace = NamespaceResolver.GenerateNamespace(Path.GetDirectoryName(fileContent) + Path.DirectorySeparatorChar);
             if (FileUtilities.IsAsmdefFile(fileContent))
                 ChangeOrAddLine(fileContent, generatedNamespace, "\"name\"", ':', (s1, s2, c) => $"{s1}{c} \"{s2}\",");
                     
@@ -108,11 +112,12 @@ namespace HappyPixels.EditorAddons
                 return AssetMoveResult.DidMove;
             }
 
-            if (FileUtilities.IsCSFile(sourcePath)) 
-                ChangeCSFileContent(sourcePath, destinationPath);
+            var generatedNamespace = NamespaceResolver.GenerateNamespace($"{destinationPath}.meta");
 
-            if (FileUtilities.IsAsmdefFile(sourcePath))
-                ChangeAsmdefContent(sourcePath, destinationPath);
+            if (FileUtilities.IsCSFile(sourcePath)) 
+                ChangeCSFileContent(sourcePath, generatedNamespace);
+            else if (FileUtilities.IsAsmdefFile(sourcePath))
+                ChangeAsmdefContent(sourcePath, generatedNamespace);
 
             FileUtilities.MoveFile(sourcePath, destinationPath);
             FileUtilities.MoveMetaFile(sourcePath, destinationPath);

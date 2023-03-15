@@ -105,7 +105,7 @@ namespace HappyPixels.EditorAddons
             GenerateScript(metaFilePath, fileName, Constants.DEFAULT_CSHARP_INTERFACE_TEMPLATE_PATH);
 
         private static void GenerateCSharpEnum(string metaFilePath, string fileName) =>
-            GenerateScript(metaFilePath, fileName, Constants.DEFAULT_CSHARP_ENUM_PATH);
+            GenerateScript(metaFilePath, fileName, Constants.DEFAULT_CSHARP_ENUM_TEMPLATE_PATH);
 
         private static void GenerateAssemblyDefinition(string metaFilePath, string fileName)
         {

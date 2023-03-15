@@ -32,6 +32,9 @@ namespace HappyPixels.EditorAddons
                 { FileType.Asmdef, GenerateAssemblyDefinition },
             };
         
+        private static bool IsDirectory(string path) => File.GetAttributes(path).HasFlag(FileAttributes.Directory);
+        private static bool IsCsFile(string path) => path.EndsWith(".cs");
+        private static bool IsAsmdefFile(string path) => path.EndsWith(".asmdef");
         private static string GenerateNamespace(string metaFilePath)
         {
             var segmentedPath = $"{Path.GetDirectoryName(metaFilePath)}".Split(new[] { Path.DirectorySeparatorChar }, StringSplitOptions.None);
@@ -94,14 +97,14 @@ namespace HappyPixels.EditorAddons
             }
         }
 
-        private static void GenerateCSharpMonobehaviourScript(string metaFilePath, string fileName)
+        private static void GenerateScript(string metaFilePath, string fileName, string templatePath)
         {
             var finalNamespace = GenerateNamespace(metaFilePath);
-            var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
-            var myTemplate =
-                File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpMonobehaviourTemplate.cs.txt");
-            var newContent = myTemplate.Replace("#NAMESPACE#", Regex.Replace(finalNamespace, @"\b \b", ""))
-                .Replace("#SCRIPTNAME#", fileName.Substring(0, fileName.IndexOf('.')));
+            var actualFile = Path.Combine(Path.GetDirectoryName(metaFilePath), fileName);
+            var myTemplate = File.ReadAllText(templatePath);
+            var newContent = myTemplate
+                .Replace("#NAMESPACE#", Regex.Replace(finalNamespace, @"\b \b", ""))
+                .Replace("#SCRIPTNAME#", Path.GetFileNameWithoutExtension(fileName));
 
             if (myTemplate != newContent)
             {
@@ -109,63 +112,27 @@ namespace HappyPixels.EditorAddons
                 AssetDatabase.Refresh();
             }
         }
+
+        private static void GenerateCSharpMonobehaviourScript(string metaFilePath, string fileName) =>
+            GenerateScript(metaFilePath, fileName, "Packages/com.happypixels.editoraddons/Editor/Templates/CSharpMonobehaviourTemplate.cs.txt");
+
+        private static void GenerateCSharpClass(string metaFilePath, string fileName) =>
+            GenerateScript(metaFilePath, fileName, "Packages/com.happypixels.editoraddons/Editor/Templates/CSharpClassTemplate.cs.txt");
         
-        private static void GenerateCSharpClass(string metaFilePath, string fileName)
-        {
-            var finalNamespace = GenerateNamespace(metaFilePath);
-            var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
-            var myTemplate =
-                File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpClassTemplate.cs.txt");
-            var newContent = myTemplate.Replace("#NAMESPACE#", Regex.Replace(finalNamespace, @"\b \b", ""))
-                .Replace("#SCRIPTNAME#", fileName.Substring(0, fileName.IndexOf('.')));
+        private static void GenerateCSharpInterface(string metaFilePath, string fileName) =>
+            GenerateScript(metaFilePath, fileName, "Packages/com.happypixels.editoraddons/Editor/Templates/CSharpInterfaceTemplate.cs.txt");
 
-            if (myTemplate != newContent)
-            {
-                File.WriteAllText(actualFile, newContent);
-                AssetDatabase.Refresh();
-            }
-        }
-
-        private static void GenerateCSharpInterface(string metaFilePath, string fileName)
-        {
-            var finalNamespace = GenerateNamespace(metaFilePath);
-            var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
-            var myTemplate =
-                File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpInterfaceTemplate.cs.txt");
-            var newContent = myTemplate.Replace("#NAMESPACE#", Regex.Replace(finalNamespace, @"\b \b", ""))
-                .Replace("#SCRIPTNAME#", fileName.Substring(0, fileName.IndexOf('.')));
-
-            if (myTemplate != newContent)
-            {
-                File.WriteAllText(actualFile, newContent);
-                AssetDatabase.Refresh();
-            }
-        }
-        
-        private static void GenerateCSharpEnum(string metaFilePath, string fileName)
-        {
-            var finalNamespace = GenerateNamespace(metaFilePath);
-            var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
-            var myTemplate =
-                File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/CSharpEnumTemplate.cs.txt");
-            var newContent = myTemplate.Replace("#NAMESPACE#", Regex.Replace(finalNamespace, @"\b \b", ""))
-                .Replace("#SCRIPTNAME#", fileName.Substring(0, fileName.IndexOf('.')));
-
-            if (myTemplate != newContent)
-            {
-                File.WriteAllText(actualFile, newContent);
-                AssetDatabase.Refresh();
-            }
-        }
+        private static void GenerateCSharpEnum(string metaFilePath, string fileName) =>
+            GenerateScript(metaFilePath, fileName, "Packages/com.happypixels.editoraddons/Editor/Templates/CSharpEnumTemplate.cs.txt");
         
         private static void GenerateAssemblyDefinition(string metaFilePath, string fileName)
         {
+            var actualFile = Path.Combine(Path.GetDirectoryName(metaFilePath), fileName);
+            var myTemplate = File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/AssemblyDefinitionTemplate.asmdef.txt");
             var finalNamespace = GenerateNamespace(metaFilePath);
-            var actualFile = $"{Path.GetDirectoryName(metaFilePath)}\\{fileName}";
-            var myTemplate =
-                File.ReadAllText("Packages/com.happypixels.editoraddons/Editor/Templates/AssemblyDefinitionTemplate.asmdef.txt");
-            var newContent = myTemplate.Replace("#NAMESPACE#", $"\"{Regex.Replace(finalNamespace, @"\b \b", "")}\"");
-            newContent = newContent.Replace("#ROOTNAMESPACE#", $"\"{EditorSettings.projectGenerationRootNamespace}\"");
+            var newContent = myTemplate
+                .Replace("#NAMESPACE#", $"\"{Regex.Replace(finalNamespace, @"\b \b", "")}\"")
+                .Replace("#ROOTNAMESPACE#", $"\"{EditorSettings.projectGenerationRootNamespace}\"");
 
             if (myTemplate != newContent)
             {
@@ -176,29 +143,42 @@ namespace HappyPixels.EditorAddons
         
         private static AssetMoveResult OnWillMoveAsset(string sourcePath, string destinationPath)
         {
-            if (File.GetAttributes(sourcePath).HasFlag(FileAttributes.Directory))
+            if (IsDirectory(sourcePath))
             {
                 MoveFolderWithContent(sourcePath, destinationPath);
-                File.Move(sourcePath + ".meta", destinationPath + ".meta");
+                MoveMetaFile(sourcePath, destinationPath);
                 return AssetMoveResult.DidMove;
             }
-            
-            if (sourcePath.EndsWith(".cs")) 
-                ChangeOrAddLine(sourcePath,GenerateNamespace(destinationPath + ".meta"), "namespace", ' ', (s1, s2, c) => $"{s1}{c}{s2}");
 
-            if (sourcePath.EndsWith(".asmdef"))
-            {
-                var generatedNamespace = GenerateNamespace(destinationPath + ".meta");
-                Debug.Log(generatedNamespace);
-                ChangeOrAddLine(sourcePath, generatedNamespace, "\"name\"", ':', (s1, s2, c) => $"{s1}{c} \"{s2}\",");
-            }
-            
-            File.Move(sourcePath, destinationPath);
-            File.Move(sourcePath + ".meta", destinationPath + ".meta");
-            
+            if (IsCsFile(sourcePath)) 
+                ChangeNamespace(sourcePath, destinationPath);
+
+            if (IsAsmdefFile(sourcePath))
+                ChangeAsmdefContent(sourcePath, destinationPath);
+
+            MoveFile(sourcePath, destinationPath);
+            MoveMetaFile(sourcePath, destinationPath);
+
             return AssetMoveResult.DidMove;
         }
+        
+        private static void ChangeNamespace(string filePath, string destinationPath)
+        {
+            var generatedNamespace = GenerateNamespace(destinationPath + ".meta");
+            ChangeOrAddLine(filePath, generatedNamespace, "namespace", ' ', (s1, s2, c) => $"{s1}{c}{s2}");
+        }
 
+        private static void ChangeAsmdefContent(string filePath, string destinationPath)
+        {
+            var generatedName = GenerateNamespace(destinationPath + ".meta");
+            ChangeOrAddLine(filePath, $"\"{generatedName}\",", "\"name\"", ':', (s1, s2, c) => $"{s1}{c} \"{s2}\",");
+        }
+
+        private static void MoveFile(string sourcePath, string destinationPath) => 
+            File.Move(sourcePath, destinationPath);
+        private static void MoveMetaFile(string sourcePath, string destinationPath) => 
+            File.Move(sourcePath + ".meta", destinationPath + ".meta");
+        
         private static void MoveFolderWithContent(string sourcePath, string destinationPath)
         {
             Directory.Move(sourcePath, destinationPath);
@@ -220,21 +200,16 @@ namespace HappyPixels.EditorAddons
                     }
                 });
         }
-
+        
         private static void ChangeOrAddLine(string filePath, string newLine, string beginningTextLine, char splittingChar, Func<string, string, char, string> returnedFormattedLine)
         {
-            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read);
-            using var sr = new StreamReader(fs);
-            using var sw = new StreamWriter(fs);
+            var lines = File.ReadAllLines(filePath).ToList();
 
-            var lines = sr.ReadToEnd().Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToList();
-            fs.Position = 0;
-            if (beginningTextLine != "")
+            if (!string.IsNullOrEmpty(beginningTextLine))
             {
                 for (var i = 0; i < lines.Count; i++)
                 {
                     var splitLine = lines[i].Split(splittingChar);
-                    
                     var lineWithoutSpaces = Regex.Replace(splitLine[0], @"\s+", "");
 
                     if (lineWithoutSpaces == beginningTextLine)
@@ -245,8 +220,8 @@ namespace HappyPixels.EditorAddons
                     }
                 }
             }
-            sw.Write(string.Join("\r\n", lines));
-            fs.SetLength(fs.Position);
+
+            File.WriteAllLines(filePath, lines);
         }
     }
 }

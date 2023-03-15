@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace HappyPixels.EditorAddons
 {
-    public class FileCreationExtension : MonoBehaviour
+    public class FileCreationMenuExtension : MonoBehaviour
     {
         [MenuItem("Assets/Create/C# Class", false, 74)]
         private static void CreateNewCSharpClass()

@@ -38,10 +38,13 @@ namespace HappyPixels.EditorAddons
         private static string GenerateNamespace(string metaFilePath)
         {
             var segmentedPath = Path.GetDirectoryName(metaFilePath)?.Split(Path.DirectorySeparatorChar);
-            var generatedNamespace = string.Join(".", segmentedPath?.Skip(2) ?? Array.Empty<string>());
-            return string.IsNullOrEmpty(generatedNamespace)
+            var initialNamespace = string.Join(".", segmentedPath?.Skip(2) ?? Array.Empty<string>());
+            
+            //Remove spaces in case folder names has spaces
+            var generatedNamespaceWithoutSpaces = Regex.Replace(initialNamespace, @"\s+", "");
+            return string.IsNullOrEmpty(generatedNamespaceWithoutSpaces)
                 ? EditorSettings.projectGenerationRootNamespace
-                : $"{EditorSettings.projectGenerationRootNamespace}.{generatedNamespace}";
+                : $"{EditorSettings.projectGenerationRootNamespace}.{generatedNamespaceWithoutSpaces}";
         }
 
         private static void OnWillCreateAsset(string metaFilePath)

@@ -30,7 +30,7 @@ All notable changes to this project will be documented in this file.
 ### Removed
 - Fading utilities and migrating to using LeanTween
 
-## [0.0.6] - 15.03.2023
+## [1.0.0] - 15.03.2023
 ### Added
 - Templates for creating POC classes, enums and interfaces
 - Ability to create these files from context menu within Unity

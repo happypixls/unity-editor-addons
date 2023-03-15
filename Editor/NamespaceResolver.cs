@@ -14,7 +14,7 @@ namespace HappyPixels.EditorAddons
             var segmentedPath = Path.GetDirectoryName(metaFilePath)?.Split(Path.DirectorySeparatorChar);
             var initialNamespace = string.Join(".", segmentedPath?.Skip(2) ?? Array.Empty<string>());
             
-            //Remove spaces in case folder names has spaces
+            //Remove spaces in case folder names have spaces
             var generatedNamespaceWithoutSpaces = Regex.Replace(initialNamespace, @"\s+", "");
             return string.IsNullOrEmpty(generatedNamespaceWithoutSpaces)
                 ? EditorSettings.projectGenerationRootNamespace

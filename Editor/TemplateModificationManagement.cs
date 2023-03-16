@@ -95,18 +95,19 @@ namespace HappyPixels.EditorAddons
 
         private static AssetMoveResult OnWillMoveAsset(string sourcePath, string destinationPath)
         {
+            var isScriptsOrEditorDirectory = destinationPath.Contains("Scripts") || destinationPath.Contains("Editor");
+
             if (FileUtilities.IsDirectory(sourcePath))
+                FileUtilities.MoveFolderWithContent(sourcePath, destinationPath, isScriptsOrEditorDirectory? FileModifier : null);
+            else
             {
-                FileUtilities.MoveFolderWithContent(sourcePath, destinationPath, FileModifier);
-                FileUtilities.MoveMetaFile(sourcePath, destinationPath);
-                return AssetMoveResult.DidMove;
+                if (isScriptsOrEditorDirectory)
+                    FileModifier(sourcePath);
+
+                FileUtilities.MoveFile(sourcePath, destinationPath);
             }
 
-            FileModifier(sourcePath);
-
-            FileUtilities.MoveFile(sourcePath, destinationPath);
             FileUtilities.MoveMetaFile(sourcePath, destinationPath);
-
             return AssetMoveResult.DidMove;
         }
     }

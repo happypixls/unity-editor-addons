@@ -40,3 +40,7 @@ All notable changes to this project will be documented in this file.
 - Assembly definition creation has been modified to satisfy the same rules as other class/scripts generation
 - Moving folders containing classes and asmdef files are now updated appropriately
 - A lot of bug fixes :) 
+
+## [1.0.1]
+### Hotfix
+- Now the namespace resolver will operate only on Editor and Scripts directory leaving any asset store plugins intact that are outside of these directories

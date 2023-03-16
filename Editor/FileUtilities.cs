@@ -23,7 +23,7 @@ namespace HappyPixels.EditorAddons
             Directory.EnumerateFiles(destinationPath, "*", SearchOption.AllDirectories)
                 .Where(file => supportedExtensions.Contains(Path.GetExtension(file)))
                 .ToList()
-                .ForEach(contentModifier);
+                .ForEach(f => contentModifier?.Invoke(f));
         }
 
     }

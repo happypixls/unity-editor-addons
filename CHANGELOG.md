@@ -44,3 +44,8 @@ All notable changes to this project will be documented in this file.
 ## [1.0.1]
 ### Hotfix
 - Now the namespace resolver will operate only on Editor and Scripts directory leaving any asset store plugins intact that are outside of these directories
+
+## [1.0.2]
+### Added
+- Docs for MonoBehaviour extension methods
+- Added check for point existing in triangle extension methods for Vector2 and Vector3
